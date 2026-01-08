@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+
+# Zip artifacts
+*.zip
+
+# OS
+Thumbs.db
+.DS_Store
+
+# VS Code
+.vscode/
