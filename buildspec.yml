@@ -12,18 +12,15 @@ phases:
       - echo "Zipping Lambda functions"
 
       - cd lambdas
-
       - zip -r producer.zip producer/app.py
       - zip -r consumer.zip consumer/app.py
       - zip -r replay.zip replay/app.py
       - zip -r backfill.zip backfill/app.py
-
       - cd ..
 
 artifacts:
   files:
-    - lambdas/producer.zip
-    - lambdas/consumer.zip
-    - lambdas/replay.zip
-    - lambdas/backfill.zip
-    - glue/raw_to_curated.py
+    - infra/**/*
+    - glue/**/*
+    - lambdas/*.zip
+    - buildspec.yml
