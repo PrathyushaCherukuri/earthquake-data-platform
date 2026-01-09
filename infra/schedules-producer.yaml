@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Schedule Producer Lambda every 15 minutes
+
+Resources:
+
+  ProducerEvery15Minutes:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: earthquake-producer-15min
+      ScheduleExpression: rate(15 minutes)
+      State: ENABLED
+      Targets:
+        - Arn: arn:aws:lambda:eu-west-2:430006376054:function:earthquake-producer
+          Id: ProducerLambdaTarget
+
+  AllowEventBridgeInvokeProducer:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: earthquake-producer
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ProducerEvery15Minutes.Arn

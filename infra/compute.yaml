@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Earthquake data platform - compute stack (Lambdas + Kinesis wiring)
+
+Parameters:
+  ArtifactsBucket:
+    Type: String
+    Default: earthquake-dev-prathyusha-data
+
+  LambdaExecutionRoleArn:
+    Type: String
+    Default: arn:aws:iam::430006376054:role/earthquake-dev-lambda-role
+
+  KinesisStreamArn:
+    Type: String
+    Default: arn:aws:kinesis:eu-west-2:430006376054:stream/earthquake-dev-stream
+
+  DynamoDBTableName:
+    Type: String
+    Default: earthquake-dev-earthquakes-latest
+
+  DLQUrl:
+    Type: String
+    Default: https://sqs.eu-west-2.amazonaws.com/430006376054/earthquake-dev-dlq
+
+  SNSTopicArn:
+    Type: String
+    Default: arn:aws:sns:eu-west-2:430006376054:earthquake-dev-alerts
+
+Resources:
+
+  ProducerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: earthquake-producer
+      Runtime: python3.10
+      Handler: producer.app.lambda_handler
+      Role: !Ref LambdaExecutionRoleArn
+      Timeout: 60
+      Code:
+        S3Bucket: !Ref ArtifactsBucket
+        S3Key: artifacts/lambdas/producer.zip
+      Environment:
+        Variables:
+          KINESIS_STREAM_NAME: earthquake-dev-stream
+
+  ConsumerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: earthquake-consumer
+      Runtime: python3.10
+      Handler: consumer.app.lambda_handler
+      Role: !Ref LambdaExecutionRoleArn
+      Timeout: 120
+      Code:
+        S3Bucket: !Ref ArtifactsBucket
+        S3Key: artifacts/lambdas/consumer.zip
+      Environment:
+        Variables:
+          DDB_TABLE_NAME: !Ref DynamoDBTableName
+          RAW_S3_PREFIX: earthquake/raw/
+          SERVING_S3_PREFIX: earthquake/serving/
+          DLQ_URL: !Ref DLQUrl
+          SNS_TOPIC_ARN: !Ref SNSTopicArn
+          S3_BUCKET: !Ref ArtifactsBucket
+
+  ReplayLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: earthquake-replay
+      Runtime: python3.10
+      Handler: replay.app.lambda_handler
+      Role: !Ref LambdaExecutionRoleArn
+      Timeout: 60
+      Code:
+        S3Bucket: !Ref ArtifactsBucket
+        S3Key: artifacts/lambdas/replay.zip
+      Environment:
+        Variables:
+          DLQ_URL: !Ref DLQUrl
+          KINESIS_STREAM_NAME: earthquake-dev-stream
+
+  BackfillLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: earthquake-backfill
+      Runtime: python3.10
+      Handler: backfill.app.lambda_handler
+      Role: !Ref LambdaExecutionRoleArn
+      Timeout: 900
+      Code:
+        S3Bucket: !Ref ArtifactsBucket
+        S3Key: artifacts/lambdas/backfill.zip
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref ArtifactsBucket
+          RAW_S3_PREFIX: earthquake/raw/
+
+  ConsumerKinesisMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !Ref KinesisStreamArn
+      FunctionName: !Ref ConsumerLambda
+      StartingPosition: LATEST
+      BatchSize: 100
+      Enabled: true
+
+Outputs:
+  ProducerLambdaName:
+    Value: !Ref ProducerLambda
+
+  ConsumerLambdaName:
+    Value: !Ref ConsumerLambda
+
+  ReplayLambdaName:
+    Value: !Ref ReplayLambda
+
+  BackfillLambdaName:
+    Value: !Ref BackfillLambda

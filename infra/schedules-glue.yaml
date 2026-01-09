@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Hourly scheduled trigger for Glue job (RAW → CURATED)
+
+Resources:
+
+  EarthquakeGlueHourlyTrigger:
+    Type: AWS::Glue::Trigger
+    Properties:
+      Name: earthquake-glue-hourly-trigger
+      Type: SCHEDULED
+      Schedule: cron(5 * * * ? *)
+      StartOnCreation: true
+      Actions:
+        - JobName: earthquake-raw-to-curated

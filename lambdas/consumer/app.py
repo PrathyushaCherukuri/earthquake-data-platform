@@ -3,7 +3,7 @@ import boto3
 import os
 import base64
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 # --------------------
 # AWS clients
@@ -20,14 +20,11 @@ DDB_TABLE_NAME = os.environ["DDB_TABLE_NAME"]
 RAW_S3_PREFIX = os.environ["RAW_S3_PREFIX"]
 SERVING_S3_PREFIX = os.environ["SERVING_S3_PREFIX"]
 DLQ_URL = os.environ["DLQ_URL"]
-S3_BUCKET = os.environ["S3_BUCKET"]   # ✅ FIXED (no hardcoding)
+S3_BUCKET = os.environ["S3_BUCKET"]
 SNS_TOPIC_ARN = os.environ["SNS_TOPIC_ARN"]
-
 
 # DynamoDB table
 table = dynamodb.Table(DDB_TABLE_NAME)
-
-
 
 # --------------------
 # Lambda handler
@@ -128,14 +125,27 @@ def lambda_handler(event, context):
         # 4) Publish SNS alert (significant earthquakes)
         # --------------------
         if mag is not None and mag >= 4.5:
+            event_time_ms = props.get("time")
+            place = props.get("place")
+            quake_url = f"https://earthquake.usgs.gov/earthquakes/eventpage/{quake_id}"
+
+            # Convert event time to human-readable UTC
+            event_time_str = datetime.fromtimestamp(event_time_ms / 1000, tz=timezone.utc)\
+                                  .strftime("%Y-%m-%d %H:%M:%S UTC")
+
+            # Human-readable message
+            message = (
+                "🚨 Earthquake Alert 🚨\n\n"
+                f"Magnitude: {mag}\n"
+                f"Location: {place}\n"
+                f"Event Time: {event_time_str}\n"
+                f"URL: {quake_url}"
+            )
+
             sns.publish(
                 TopicArn=SNS_TOPIC_ARN,
-                Subject=f"Earthquake Alert | M {mag}",
-                Message=json.dumps({
-                    "quake_id": quake_id,
-                    "magnitude": mag,
-                    "time": now.isoformat()
-                })
+                Subject=f"🚨 Earthquake Alert | M {mag}",
+                Message=message
             )
 
     return {"status": "ok"}

@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Earthquake batch processing Glue job (RAW → CURATED)
+
+Parameters:
+  GlueJobName:
+    Type: String
+    Default: earthquake-raw-to-curated
+
+  GlueRoleArn:
+    Type: String
+    Default: arn:aws:iam::430006376054:role/service-role/AWSGlueServiceRole
+
+  ScriptBucket:
+    Type: String
+    Default: earthquake-dev-prathyusha-data
+
+  ScriptKey:
+    Type: String
+    Default: artifacts/glue/raw_to_curated.py
+
+  TempDir:
+    Type: String
+    Default: s3://earthquake-dev-prathyusha-data/glue/temp/
+
+Resources:
+
+  EarthquakeGlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Ref GlueJobName
+      Role: !Ref GlueRoleArn
+      GlueVersion: "4.0"
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      Timeout: 30
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub s3://${ScriptBucket}/${ScriptKey}
+        PythonVersion: "3"
+      DefaultArguments:
+        "--job-language": "python"
+        "--enable-continuous-cloudwatch-log": "true"
+        "--enable-metrics": "true"
+        "--TempDir": !Ref TempDir
+        "--enable-auto-scaling": "true"
+
+Outputs:
+  GlueJobName:
+    Value: !Ref EarthquakeGlueJob
