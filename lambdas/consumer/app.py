@@ -21,6 +21,8 @@ RAW_S3_PREFIX = os.environ["RAW_S3_PREFIX"]
 SERVING_S3_PREFIX = os.environ["SERVING_S3_PREFIX"]
 DLQ_URL = os.environ["DLQ_URL"]
 S3_BUCKET = os.environ["S3_BUCKET"]   # ✅ FIXED (no hardcoding)
+SNS_TOPIC_ARN = os.environ["SNS_TOPIC_ARN"]
+
 
 # DynamoDB table
 table = dynamodb.Table(DDB_TABLE_NAME)
