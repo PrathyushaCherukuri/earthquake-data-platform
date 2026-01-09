@@ -10,7 +10,9 @@ from pyspark.sql.functions import (
     input_file_name,
     regexp_extract,
     lit,
-    row_number
+    row_number,
+    current_date,
+    date_sub
 )
 from pyspark.sql.window import Window
 
@@ -25,7 +27,7 @@ job = Job(glueContext)
 job.init(args["JOB_NAME"], args)
 
 # --------------------
-# S3 Paths (CORRECTED)
+# S3 Paths
 # --------------------
 RAW_PATH = "s3://earthquake-dev-prathyusha-data/earthquake/raw/"
 CURATED_V2_PATH = (
@@ -34,7 +36,7 @@ CURATED_V2_PATH = (
 )
 
 # --------------------
-# 1) Read RAW data
+# 1) Read RAW data (IMMUTABLE)
 # --------------------
 raw_df = (
     spark.read
@@ -60,7 +62,15 @@ raw_df = raw_df.withColumn(
 raw_df = raw_df.filter((col("dt") != "") & (col("hour") != ""))
 
 # --------------------
-# 3) Flatten schema
+# ✅ 3) INCREMENTAL FIX
+#     Process only last 48 hours of RAW
+# --------------------
+raw_df = raw_df.filter(
+    col("dt") >= date_sub(current_date(), 2)
+)
+
+# --------------------
+# 4) Flatten schema
 # --------------------
 flat = raw_df.select(
     col("feature.id").alias("quake_id"),
@@ -77,7 +87,7 @@ flat = raw_df.select(
 )
 
 # --------------------
-# 4) Data quality rules (BATCH)
+# 5) Data quality rules
 # --------------------
 flat = flat.filter(col("quake_id").isNotNull() & (col("quake_id") != ""))
 flat = flat.filter(col("mag") >= 0)
@@ -85,7 +95,7 @@ flat = flat.filter((col("lat") >= -90) & (col("lat") <= 90))
 flat = flat.filter((col("lon") >= -180) & (col("lon") <= 180))
 
 # --------------------
-# 5) Deduplication
+# 6) Deduplication
 #    (quake_id + updated_ms)
 # --------------------
 w = Window.partitionBy("quake_id", "updated_ms").orderBy(col("updated_ms").desc())
@@ -98,7 +108,7 @@ deduped = (
 )
 
 # --------------------
-# 6) Enrichment
+# 7) Enrichment
 # --------------------
 final_df = (
     deduped
@@ -108,7 +118,7 @@ final_df = (
 )
 
 # --------------------
-# 7) Write curated history (incremental)
+# 8) Write curated history (append-only)
 # --------------------
 (
     final_df.write
