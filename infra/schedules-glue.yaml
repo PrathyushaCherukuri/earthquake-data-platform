@@ -8,7 +8,7 @@ Resources:
     Properties:
       Name: earthquake-glue-hourly-trigger
       Type: SCHEDULED
-      Schedule: cron(5 * * * ? *)
+      Schedule: cron(0/10 * * * ? *)
       StartOnCreation: true
       Actions:
         - JobName: earthquake-raw-to-curated
