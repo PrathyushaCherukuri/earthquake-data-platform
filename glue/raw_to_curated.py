@@ -16,9 +16,9 @@ from pyspark.sql.functions import (
 )
 from pyspark.sql.window import Window
 
-# --------------------
+
 # Glue boilerplate
-# --------------------
+
 args = getResolvedOptions(sys.argv, ["JOB_NAME"])
 sc = SparkContext()
 glueContext = GlueContext(sc)
@@ -26,27 +26,27 @@ spark = glueContext.spark_session
 job = Job(glueContext)
 job.init(args["JOB_NAME"], args)
 
-# --------------------
+
 # S3 Paths
-# --------------------
+
 RAW_PATH = "s3://earthquake-dev-prathyusha-data/earthquake/raw/"
 CURATED_V2_PATH = (
     "s3://earthquake-dev-prathyusha-data/"
     "earthquake/curated/earthquakes_history_v2/"
 )
 
-# --------------------
-# 1) Read RAW data (IMMUTABLE)
-# --------------------
+
+#  Read RAW data (IMMUTABLE)
+
 raw_df = (
     spark.read
     .option("mergeSchema", "true")
     .json(RAW_PATH)
 )
 
-# --------------------
-# 2) Extract dt/hour from S3 path
-# --------------------
+
+#  Extract dt/hour from S3 path
+
 raw_df = raw_df.withColumn("_file", input_file_name())
 
 raw_df = raw_df.withColumn(
@@ -61,17 +61,17 @@ raw_df = raw_df.withColumn(
 
 raw_df = raw_df.filter((col("dt") != "") & (col("hour") != ""))
 
-# --------------------
-# ✅ 3) INCREMENTAL FIX
+
+#  INCREMENTAL FIX
 #     Process only last 48 hours of RAW
-# --------------------
+
 raw_df = raw_df.filter(
     col("dt") >= date_sub(current_date(), 2)
 )
 
-# --------------------
-# 4) Flatten schema
-# --------------------
+
+#  Flatten schema
+
 flat = raw_df.select(
     col("feature.id").alias("quake_id"),
     col("feature.properties.mag").cast("double").alias("mag"),
@@ -86,18 +86,18 @@ flat = raw_df.select(
     col("hour")
 )
 
-# --------------------
-# 5) Data quality rules
-# --------------------
+
+#  Data quality rules
+
 flat = flat.filter(col("quake_id").isNotNull() & (col("quake_id") != ""))
 flat = flat.filter(col("mag") >= 0)
 flat = flat.filter((col("lat") >= -90) & (col("lat") <= 90))
 flat = flat.filter((col("lon") >= -180) & (col("lon") <= 180))
 
-# --------------------
-# 6) Deduplication
+
+#  Deduplication
 #    (quake_id + updated_ms)
-# --------------------
+
 w = Window.partitionBy("quake_id", "updated_ms").orderBy(col("updated_ms").desc())
 
 deduped = (
@@ -107,9 +107,9 @@ deduped = (
     .drop("rn")
 )
 
-# --------------------
-# 7) Enrichment
-# --------------------
+
+#  Enrichment
+
 final_df = (
     deduped
     .withColumn("event_time", from_unixtime(col("event_time_ms") / 1000))
@@ -117,9 +117,9 @@ final_df = (
     .withColumn("pipeline_type", lit("batch"))
 )
 
-# --------------------
-# 8) Write curated history (append-only)
-# --------------------
+
+#  Write curated history (append-only)
+
 (
     final_df.write
     .mode("append")
