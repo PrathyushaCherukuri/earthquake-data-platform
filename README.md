@@ -1,3 +1,4 @@
+
 # 🌍 Earthquake Analytics Platform on AWS
 
 An end-to-end data engineering platform that ingests, processes, and analyzes earthquake data using both **streaming** and **batch** pipelines on AWS.
@@ -140,3 +141,180 @@ This project demonstrates a **production-oriented AWS data engineering solution*
 
 **Prathyusha Cherukuri**  
 Data Engineer | AWS | Big Data | Streaming & Analytics
+=======
+🌍 Earthquake Analytics Platform on AWS
+
+An end-to-end data engineering platform that ingests, processes, and analyzes earthquake data using both near real-time streaming and batch analytics on AWS.
+
+The platform enables real-time monitoring, historical analysis, alerts for significant earthquakes, and follows production-grade reliability and scalability patterns.
+
+🚀 Project Overview
+
+This project ingests earthquake data from the USGS Earthquake API and processes it using a streaming-first architecture with batch processing layered on top.
+
+The system supports:
+
+Near real-time earthquake monitoring
+
+Historical trend analysis
+
+Automated alerts for high-magnitude events
+
+Scalable, serverless AWS architecture
+
+Reliable ingestion with replay and error handling
+
+📊 Data Source
+
+USGS Earthquake API
+
+Provides near real-time global earthquake events
+
+Limited historical availability → one-time backfill performed
+
+Continuous streaming ingestion ensures full history is retained in Amazon S3
+
+🏗️ Architecture Overview
+
+The platform follows a streaming-first design with batch analytics for historical insights.
+
+🔹 Streaming Pipeline
+
+Amazon EventBridge schedules ingestion
+
+AWS Lambda (Producer) polls USGS API
+
+Amazon Kinesis acts as the event backbone
+
+AWS Lambda (Consumer):
+
+Writes latest event state to DynamoDB
+
+Stores raw and serving datasets in Amazon S3
+
+Sends alerts via Amazon SNS
+
+Routes low-quality or noisy events to Amazon SQS (DLQ)
+
+🔹 Batch Pipeline
+
+AWS Glue processes historical data stored in S3
+
+Data cleansing, deduplication, and enrichment
+
+Curated datasets optimized for analytics
+
+Amazon Athena used for unified querying
+
+🧱 Technology Stack
+Compute & Ingestion
+
+AWS Lambda
+
+Amazon Kinesis
+
+Amazon EventBridge
+
+Storage & Analytics
+
+Amazon S3
+
+AWS Glue
+
+Amazon Athena
+
+Amazon DynamoDB
+
+Visualization
+
+Amazon QuickSight
+
+Monitoring & Reliability
+
+Amazon CloudWatch
+
+Amazon SNS
+
+Amazon SQS (Dead Letter Queue)
+
+Infrastructure & CI/CD
+
+AWS CloudFormation
+
+AWS CodePipeline
+
+AWS CodeBuild
+
+📈 Dashboards & Insights
+
+Total earthquakes in the last 24 hours
+
+Recent activity (last 1–2 hours)
+
+Earthquakes over time (hourly trends)
+
+Magnitude distribution and severity analysis
+
+Regional earthquake activity
+
+Combined real-time and historical views
+
+🔔 Alerts & Error Handling
+
+Amazon SNS alerts triggered for earthquakes with magnitude ≥ 4.5
+
+Low-magnitude or invalid events sent to SQS DLQ
+
+Replay mechanism enables safe reprocessing without data loss
+
+⚙️ Infrastructure as Code & CI/CD
+
+All AWS resources provisioned using AWS CloudFormation
+
+CI/CD pipeline implemented using AWS CodePipeline and CodeBuild
+
+Git-driven deployments ensure reproducibility and consistency
+
+Infrastructure and application code managed together
+
+🧠 Key Design Decisions
+
+Streaming-first ingestion with a one-time historical backfill
+
+Kinesis used to decouple producers and consumers
+
+DynamoDB optimized for low-latency latest-state access
+
+Amazon S3 used as immutable system of record
+
+Clear separation between ingestion, processing, and serving layers
+
+🚧 Challenges & Learnings
+
+Handling event time vs ingestion time for near real-time dashboards
+
+Designing incremental processing without duplicates
+
+Balancing streaming and batch workloads
+
+Implementing reliable alerting, DLQ, and replay mechanisms
+
+🔮 Future Enhancements
+
+Machine learning models for seismic risk scoring and anomaly detection
+
+Geospatial analytics and map-based visualizations
+
+Adaptive alert thresholds based on regional seismic patterns
+
+Advanced data quality validation in streaming pipelines
+
+📌 Conclusion
+
+This project demonstrates a production-oriented AWS data engineering solution that combines real-time ingestion, batch analytics, monitoring, and automation using modern serverless services.
+
+📬 Author
+
+Prathyusha Cherukuri
+Data Engineer | AWS | Big Data | Streaming & Analytics
+
