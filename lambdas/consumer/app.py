@@ -5,17 +5,17 @@ import base64
 import time
 from datetime import datetime, timezone
 
-# --------------------
+
 # AWS clients
-# --------------------
+
 dynamodb = boto3.resource("dynamodb")
 s3 = boto3.client("s3")
 sns = boto3.client("sns")
 sqs = boto3.client("sqs")
 
-# --------------------
+
 # Environment variables
-# --------------------
+
 DDB_TABLE_NAME = os.environ["DDB_TABLE_NAME"]
 RAW_S3_PREFIX = os.environ["RAW_S3_PREFIX"]
 SERVING_S3_PREFIX = os.environ["SERVING_S3_PREFIX"]
@@ -26,9 +26,9 @@ SNS_TOPIC_ARN = os.environ["SNS_TOPIC_ARN"]
 # DynamoDB table
 table = dynamodb.Table(DDB_TABLE_NAME)
 
-# --------------------
+
 # Lambda handler
-# --------------------
+
 def lambda_handler(event, context):
 
     for record in event["Records"]:
@@ -47,9 +47,9 @@ def lambda_handler(event, context):
         if not quake_id:
             continue
 
-        # --------------------
+       
         # DLQ: filter low magnitude noise
-        # --------------------
+      
         if mag is not None and mag < 1:
             sqs.send_message(
                 QueueUrl=DLQ_URL,
@@ -65,9 +65,8 @@ def lambda_handler(event, context):
         now = datetime.utcnow()
         epoch_ms = int(time.time() * 1000)
 
-        # --------------------
         # 1) Write latest state to DynamoDB
-        # --------------------
+       
         table.put_item(
             Item={
                 "quake_id": quake_id,
@@ -76,9 +75,9 @@ def lambda_handler(event, context):
             }
         )
 
-        # --------------------
+      
         # 2) Write RAW event to S3 (nested JSON)
-        # --------------------
+    
         raw_key = (
             f"{RAW_S3_PREFIX}"
             f"dt={now.date()}/hour={now.hour}/"
@@ -92,9 +91,9 @@ def lambda_handler(event, context):
             ContentType="application/json"
         )
 
-        # --------------------
+       
         # 3) Write SERVING event to S3 (flat JSON)
-        # --------------------
+        
         serving_record = {
             "quake_id": quake_id,
             "mag": mag,
@@ -121,9 +120,9 @@ def lambda_handler(event, context):
             ContentType="application/json"
         )
 
-        # --------------------
+       
         # 4) Publish SNS alert (significant earthquakes)
-        # --------------------
+      
         if mag is not None and mag >= 4.5:
             event_time_ms = props.get("time")
             place = props.get("place")
